@@ -1,10 +1,6 @@
-# try - fresh directories for every vibe
+# try - fresh directories for every vibe (but written in *Rust*)
 
-> For everyone who constantly creates new projects for little experiments, a one-file Ruby script to quickly manage and navigate to keep them somewhat organized
-
-Ever find yourself with 50 directories named `test`, `test2`, `new-test`, `actually-working-test`, scattered across your filesystem? Or worse, just coding in `/tmp` and losing everything?
-
-**try** is here for your beautifully chaotic mind.
+> made it (oneshot with AI) because I wanted to modify this script for my own usecases, I don't know Ruby but I know Rust so it will be easier for me to work on it
 
 # What it does 
 
@@ -13,23 +9,24 @@ Ever find yourself with 50 directories named `test`, `test2`, `new-test`, `actua
 Instantly navigate through all your experiment directories with:
 - **Fuzzy search** that just works
 - **Smart sorting** - recently used stuff bubbles to the top
-- **Auto-dating** - creates directories like `2025-08-17-redis-experiment`
-- **Zero config** - just one Ruby file, no dependencies
+- **Auto-dating** - creates directories like `2025-08-17-redis-experiment` (this will definitively change)
+- **Easy config** - just one *Rust* file, at least 6 dependancies (will probably grow, I won't spend time writing it purely in Rust)
 
 ## Quick Start
 
 ```bash
-curl -sL https://raw.githubusercontent.com/tobi/try/refs/heads/main/try.rb > ~/.local/try.rb
+# Clone and build
+git clone https://github.com/Gohlub/try-rs
+cd try-rs
+cargo build --release
 
 # Add to your shell (bash/zsh)
-echo 'eval "$(~/.local/try.rb init ~/src/tries)"' >> ~/.zshrc
+echo 'eval "$(./target/release/try init ~/src/tries)"' >> ~/.zshrc
+# Or install globally
+cargo install --path .
+echo 'eval "$(try init ~/src/tries)"' >> ~/.zshrc
 ```
-
-## The Problem
-
-You're learning Redis. You create `/tmp/redis-test`. Then `~/Desktop/redis-actually`. Then `~/projects/testing-redis-again`. Three weeks later you can't find that brilliant connection pooling solution you wrote at 2am.
-
-## The Solution
+## Outline
 
 All your experiments in one place, with instant fuzzy search:
 
@@ -73,16 +70,15 @@ Not just substring matching - it's smart:
 Add to your `~/.bashrc` or `~/.zshrc`:
 
 
-
 ```bash
 # default is ~/src/tries
-eval "$(~/.local/try.rb init)"
+eval "$(try init)"
 ```
 
 Or if you want to customize the location:
 
 ```bash
-eval "$(~/.local/try.rb init ~/src/tries)"
+eval "$(try init ~/src/tries)"
 ```
 
 ## Usage
@@ -112,43 +108,16 @@ export TRY_PATH=~/code/sketches
 
 Default: `~/src/tries`
 
-## Why Ruby?
+## Why Rust?
 
-- One file, no dependencies
-- Works on any system with Ruby (macOS has it built-in)
-- Fast enough for thousands of directories
-- Easy to hack on
-
-## The Philosophy
-
-Your brain doesn't work in neat folders. You have ideas, you try things, you context-switch like a caffeinated squirrel. This tool embraces that.
-
-Every experiment gets a home. Every home is instantly findable. Your 2am coding sessions are no longer lost to the void.
-
-## FAQ
-
-**Q: Why not just use `cd` and `ls`?**
-A: Because you have 200 directories and can't remember if you called it `test-redis`, `redis-test`, or `new-redis-thing`.
-
-**Q: Why not use `fzf`?**
-A: fzf is great for files. This is specifically for project directories, with time-awareness and auto-creation built in.
-
-**Q: Can I use this for real projects?**
-A: You can, but it's designed for experiments. Real projects deserve real names in real locations.
-
-**Q: What if I have thousands of experiments?**
-A: First, welcome to the club. Second, it handles it fine - the scoring algorithm ensures relevant stuff stays on top.
+- That's what I need it to be
 
 ## Contributing
 
-It's one file. If you want to change something, just edit it. Send a PR if you think others would like it too.
+This will be purpose built to support vibecoding that fits my needs. I suggest forking
+the original and updating/rewriting it according to your needs. 
 
 ## License
 
 MIT - Do whatever you want with it.
 
----
-
-*Built for developers with ADHD by developers with ADHD.*
-
-*Your experiments deserve a home.* 🏠
