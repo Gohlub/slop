@@ -10,8 +10,11 @@ Slop keeps your projects organized without getting in your way. Browse, create, 
 
 ```bash
 cargo build --release
-echo 'eval "$(./target/release/slop init ~/src/slop)"' >> ~/.zshrc
-source ~/.zshrc
+
+# Add to your shell config
+echo 'eval "$(./target/release/slop init ~/src/slop)"' >> ~/.zshrc  # for zsh
+# echo 'eval "$(./target/release/slop init ~/src/slop)"' >> ~/.bashrc  # for bash
+source ~/.zshrc  # or source ~/.bashrc for bash
 ```
 
 ## Usage
