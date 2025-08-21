@@ -61,5 +61,4 @@ slop torvalds/linux                         # Shorthand
 ```
 
 ## Contribution
-
-This project won't be accepting contributions at this point. I will make sure to update the README should that change.
+Not accepting contributions at this time.
