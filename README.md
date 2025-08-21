@@ -1,123 +1,65 @@
-# try - fresh directories for every vibe (but written in *Rust*)
+# slop
 
-> made it (oneshot with AI) because I wanted to modify this script for my own usecases, I don't know Ruby but I know Rust so it will be easier for me to work on it
+A project manager to keep all your slop in one place.
 
-# What it does 
+## What it does
 
-[![asciicast](https://asciinema.org/a/ve8AXBaPhkKz40YbqPTlVjqgs.svg)](https://asciinema.org/a/ve8AXBaPhkKz40YbqPTlVjqgs)
-
-Instantly navigate through all your experiment directories with:
-- **Fuzzy search** that just works
-- **Smart sorting** - recently used stuff bubbles to the top
-- **Auto-dating** - creates directories like `2025-08-17-redis-experiment` (this will definitively change)
-- **Easy config** - just one *Rust* file, at least 6 dependancies (will probably grow, I won't spend time writing it purely in Rust)
+Slop keeps your projects organized without getting in your way. Browse, create, clone, delete, and jump between projects instantly. Opens everything in Claude Code by default. When you close your editor, jot down quick thoughts that get saved to your project folder.
 
 ## Quick Start
 
 ```bash
-# Clone and build
-git clone https://github.com/Gohlub/try-rs
-cd try-rs
 cargo build --release
-
-# Add to your shell (bash/zsh)
-echo 'eval "$(./target/release/try init ~/src/tries)"' >> ~/.zshrc
-# Or install globally
-cargo install --path .
-echo 'eval "$(try init ~/src/tries)"' >> ~/.zshrc
-```
-## Outline
-
-All your experiments in one place, with instant fuzzy search:
-
-```bash
-$ try pool
-→ 2025-08-14-redis-connection-pool    2h, 18.5
-  2025-08-03-thread-pool              3d, 12.1
-  2025-07-22-db-pooling               2w, 8.3
-  + Create new: pool
-```
-
-Type, arrow down, enter. You're there.
-
-## Features
-
-### 🎯 Smart Fuzzy Search
-Not just substring matching - it's smart:
-- `rds` matches `redis-server`
-- `connpool` matches `connection-pool`
-- Recent stuff scores higher
-- Shorter names win on equal matches
-
-### ⏰ Time-Aware
-- Shows how long ago you touched each project
-- Recently accessed directories float to the top
-- Perfect for "what was I working on yesterday?"
-
-### 🎨 Pretty TUI
-- Clean, minimal interface
-- Highlights matches as you type
-- Shows scores so you know why things are ranked
-- Dark mode by default (because obviously)
-
-### 📁 Organized Chaos
-- Everything lives in `~/src/tries` (configurable via `TRY_PATH`)
-- Auto-prefixes with dates: `2025-08-17-your-idea`
-- Skip the date prompt if you already typed a name
-
-### Shell Integration
-
-Add to your `~/.bashrc` or `~/.zshrc`:
-
-
-```bash
-# default is ~/src/tries
-eval "$(try init)"
-```
-
-Or if you want to customize the location:
-
-```bash
-eval "$(try init ~/src/tries)"
+echo 'eval "$(./target/release/slop init ~/src/slop)"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 ## Usage
 
 ```bash
-try                 # Browse all experiments
-try redis           # Jump to redis experiment or create new
-try new api         # Start with "2025-08-17-new-api"
-try --help          # See all options
+slop                           # Interactive project browser
+slop my-new-idea              # Create or find project
+slop torvalds/linux           # Clone Linux kernel repo
 ```
 
-### Keyboard Shortcuts
+**In the navigator:**
+- `↑↓` Navigate projects
+- `Enter` Open project in Claude
+- `D` Delete project
+- `ESC` Clear search / Exit
+- `⚙️ Configure` for settings
 
-- `↑/↓` or `Ctrl-P/N` - Navigate
-- `Enter` - Select or create
-- `Backspace` - Delete character
-- `ESC` - Cancel
-- Just type to filter
+## Features
+
+- **Smart search** - fuzzy matching with recency scoring
+- **GitHub cloning** - paste any URL format (full URL, github.com/user/repo, or user/repo)
+- **Project templates** - Rust, Python, JavaScript, TypeScript, Go, or blank
+- **Quick notes** - capture thoughts when you close your editor  
 
 ## Configuration
 
-Set `TRY_PATH` to change where experiments are stored:
-
 ```bash
-export TRY_PATH=~/code/sketches
+slop config show                    # View current settings
+slop config editor claude           # Set editor (default: claude)
+slop config editor cursor           # Or use Cursor
+slop config editor "code --wait"    # VS Code with flags
+slop config path ~/code/projects    # Set projects directory
 ```
 
-Default: `~/src/tries`
+**Default settings:**
+- **Projects path**: `~/src/slop`
+- **Editor**: `claude`
+- **Config file**: `~/.config/slop/config.toml`
 
-## Why Rust?
+## GitHub Integration
 
-- That's what I need it to be
+Just paste any GitHub URL format:
+```bash
+slop https://github.com/microsoft/vscode    # Full URL
+slop github.com/facebook/react              # Without https
+slop torvalds/linux                         # Shorthand
+```
 
-## Contributing
+## Contribution
 
-This will be purpose built to support vibecoding that fits my needs. I suggest forking
-the original and updating/rewriting it according to your needs. 
-
-## License
-
-MIT - Do whatever you want with it.
-
+This is created according to my needs. If you want something different, fork it - code is cheap.
