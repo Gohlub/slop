@@ -25,6 +25,11 @@ slop my-new-idea              # Create or find project
 slop torvalds/linux           # Clone Linux kernel repo
 ```
 
+**Workflow:**
+1. Type project name (or GitHub URL) in the search bar
+2. Select template (Rust, Python, etc.) or existing project
+3. Project is created/opened and Claude Code launches automatically
+
 **In the navigator:**
 - `↑↓` Navigate projects
 - `Enter` Open project in Claude

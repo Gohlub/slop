@@ -388,12 +388,12 @@ impl VibeSelector {
                     let projects = self.get_projects()?;
                     
                     let create_new_text = if self.input_buffer.is_empty() {
-                        "✨ Create new project".to_string()
+                        "✨ Create new project (select template)".to_string()
                     } else if self.is_github_url(&self.input_buffer) {
                         let repo_name = self.extract_repo_name(&self.normalize_github_url(&self.input_buffer));
                         format!("🚀 Clone {}", repo_name)
                     } else {
-                        format!("✨ Create {}", self.input_buffer)
+                        format!("✨ Create {} (blank template)", self.input_buffer)
                     };
 
                     let total_items = projects.len() + 2; // +1 for create new, +1 for config
@@ -426,7 +426,11 @@ impl VibeSelector {
                                     // Selected "Create new"
                                     if self.is_github_url(&self.input_buffer) {
                                         self.handle_clone_repo()?;
+                                    } else if !self.input_buffer.is_empty() {
+                                        // If name is already typed, create with default template
+                                        self.handle_template_selection(ProjectTemplate::Blank)?;
                                     } else {
+                                        // No name typed, go to template selection
                                         self.handle_create_new()?;
                                     }
                                 } else {
@@ -497,6 +501,16 @@ impl VibeSelector {
                             KeyEvent { code: KeyCode::Esc, .. } => {
                                 self.mode = SelectorMode::ProjectSelection;
                                 self.cursor_pos = 0;
+                            }
+                            KeyEvent { code: KeyCode::Backspace, .. } => {
+                                if !self.input_buffer.is_empty() {
+                                    self.input_buffer.pop();
+                                }
+                            }
+                            KeyEvent { code: KeyCode::Char(ch), .. } => {
+                                if ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == '.' || ch == ' ' {
+                                    self.input_buffer.push(ch);
+                                }
                             }
                             _ => {}
                         }
@@ -756,7 +770,7 @@ impl VibeSelector {
             SetForegroundColor(Color::DarkGrey),
             Print(&separator),
             Print("\r\n"),
-            Print("↑↓: Navigate  Enter: Select  D: Delete  ESC: Cancel"),
+            Print("Type: Project name  ↑↓: Navigate  Enter: Select  D: Delete  ESC: Clear"),
             ResetColor,
         )?;
 
@@ -782,6 +796,33 @@ impl VibeSelector {
             Print("\r\n"),
         )?;
 
+        // Show project name being created
+        if !self.input_buffer.is_empty() {
+            execute!(
+                io::stderr(),
+                SetForegroundColor(Color::Green),
+                Print("Creating: "),
+                Print(&self.input_buffer),
+                ResetColor,
+                Print("\r\n"),
+            )?;
+        } else {
+            execute!(
+                io::stderr(),
+                SetForegroundColor(Color::DarkGrey),
+                Print("Creating: new-project"),
+                ResetColor,
+                Print("\r\n"),
+            )?;
+        }
+        execute!(
+            io::stderr(),
+            SetForegroundColor(Color::DarkGrey),
+            Print(&separator),
+            ResetColor,
+            Print("\r\n"),
+        )?;
+
         for (idx, template) in templates.iter().enumerate() {
             let is_selected = idx == self.cursor_pos;
             if is_selected {
@@ -799,7 +840,7 @@ impl VibeSelector {
             SetForegroundColor(Color::DarkGrey),
             Print(&separator),
             Print("\r\n"),
-            Print("↑↓: Navigate  Enter: Select  ESC: Back"),
+            Print("↑↓: Navigate  Enter: Select  Type: Edit name  ESC: Back"),
             ResetColor,
         )?;
 
@@ -1101,26 +1142,8 @@ impl VibeSelector {
 
     fn handle_template_selection(&mut self, template: ProjectTemplate) -> Result<()> {
         let project_name = if self.input_buffer.is_empty() {
-            self.restore_terminal()?;
-            
-            print!("Enter project name: ");
-            io::stdout().flush()?;
-            
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            let name = input.trim();
-            
-            if name.is_empty() {
-                self.selected = Some(SelectionResult {
-                    action: SelectionAction::Cancel,
-                    path: PathBuf::new(),
-                    template: None,
-                    git_url: None,
-                });
-                return Ok(());
-            }
-            
-            name.to_string()
+            // If no name was entered, use a default name
+            "new-project".to_string()
         } else {
             self.input_buffer.clone()
         };
@@ -1424,6 +1447,9 @@ fn clone_repository(url: &str, path: &PathBuf) -> Result<()> {
 }
 
 fn open_in_editor(path: &PathBuf, config: &VibeConfig) -> Result<()> {
+    // Change to project directory first
+    env::set_current_dir(path)?;
+    
     // Try configured editor first, then fallbacks
     let mut editors_to_try = vec![config.default_editor.as_str()];
     
@@ -1440,7 +1466,7 @@ fn open_in_editor(path: &PathBuf, config: &VibeConfig) -> Result<()> {
     
     for editor in &editors_to_try {
         let child = Command::new(editor)
-            .arg(path)
+            .arg(".")
             .spawn();
             
         if let Ok(mut process) = child {
@@ -1452,7 +1478,7 @@ fn open_in_editor(path: &PathBuf, config: &VibeConfig) -> Result<()> {
             // Capture quick notes
             capture_quick_notes(path)?;
             
-            // Re-run slop navigator
+            // Return to slop navigator
             let current_exe = env::current_exe()?;
             let mut new_process = Command::new(current_exe)
                 .arg("run")
@@ -1539,8 +1565,7 @@ async fn main() -> Result<()> {
   # Handle special commands that should not be executed
   if [ $# -eq 0 ]; then
     # No arguments - run interactive mode
-    cmd=$("$script_path" run{} 2>/dev/tty);
-    [ $? -eq 0 ] && eval "$cmd" || echo "$cmd";
+    "$script_path" run{} 2>/dev/tty;
   else
     case "$1" in
       --help|-h|help|config|init)
@@ -1549,8 +1574,7 @@ async fn main() -> Result<()> {
         ;;
       *)
         # For everything else, use run command
-        cmd=$("$script_path" run{} "$@" 2>/dev/tty);
-        [ $? -eq 0 ] && eval "$cmd" || echo "$cmd";
+        "$script_path" run{} "$@" 2>/dev/tty;
         ;;
     esac
   fi
