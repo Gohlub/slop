@@ -17,7 +17,7 @@ source ~/.zshrc
 ## Usage
 
 ```bash
-slop                           # Interactive project browser
+slop                          # Interactive project browser
 slop my-new-idea              # Create or find project
 slop torvalds/linux           # Clone Linux kernel repo
 ```
