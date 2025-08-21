@@ -62,4 +62,4 @@ slop torvalds/linux                         # Shorthand
 
 ## Contribution
 
-This is created according to my needs. If you want something different, fork it - code is cheap.
+This project won't be accepting contributions at this point. I will make sure to update the README should that change.

@@ -213,8 +213,9 @@ impl VibeSelector {
 
     fn update_terminal_size(&mut self) -> Result<()> {
         let (width, height) = size().unwrap_or((80, 24));
-        self.term_width = width;
-        self.term_height = height;
+        // Ensure minimum usable size
+        self.term_width = width.max(40);
+        self.term_height = height.max(10);
         Ok(())
     }
 
@@ -402,6 +403,9 @@ impl VibeSelector {
 
                     self.render_project_selection(&projects, &create_new_text)?;
 
+                    // Update terminal size before handling input
+                    self.update_terminal_size()?;
+                    
                     if let Event::Key(key) = event::read()? {
                         match key {
                             KeyEvent { code: KeyCode::Up, .. } | KeyEvent { code: KeyCode::Char('p'), modifiers: KeyModifiers::CONTROL, .. } => {
@@ -636,13 +640,13 @@ impl VibeSelector {
     fn render_project_selection(&mut self, projects: &[Project], create_new_text: &str) -> Result<()> {
         execute!(io::stderr(), Clear(ClearType::All), MoveTo(0, 0))?;
 
-        let separator = "─".repeat(self.term_width as usize - 1);
+        let separator = "─".repeat(self.term_width.saturating_sub(1).max(10) as usize);
 
         // Header
         execute!(
             io::stderr(),
             SetForegroundColor(Color::Cyan),
-            Print("🚀 slop"),
+            Print("slop"),
             ResetColor,
             Print("\r\n"),
             SetForegroundColor(Color::DarkGrey),
@@ -700,8 +704,15 @@ impl VibeSelector {
 
         for idx in self.scroll_offset..visible_end {
             let is_selected = idx == self.cursor_pos;
+            
+            // Better selection highlighting
             if is_selected {
-                execute!(io::stderr(), SetForegroundColor(Color::Yellow), Print("→ "), ResetColor)?;
+                execute!(
+                    io::stderr(),
+                    SetForegroundColor(Color::Yellow),
+                    Print("▶ "),
+                    ResetColor
+                )?;
             } else {
                 execute!(io::stderr(), Print("  "))?;
             }
@@ -711,26 +722,27 @@ impl VibeSelector {
                 self.render_project(project, is_selected)?;
             } else if idx == projects.len() {
                 // Create new option
-                if self.is_github_url(&self.input_buffer) {
-                    // Enhanced clone option display
-                    if is_selected {
-                        execute!(io::stderr(), SetForegroundColor(Color::Black))?;
-                    }
-                    execute!(io::stderr(), Print(&create_new_text))?;
-                    if is_selected {
-                        execute!(io::stderr(), ResetColor)?;
-                    }
+                if is_selected {
+                    execute!(
+                        io::stderr(),
+                        SetForegroundColor(Color::Yellow),
+                        Print(&create_new_text),
+                        ResetColor
+                    )?;
                 } else {
                     execute!(io::stderr(), Print(&create_new_text))?;
                 }
             } else {
                 // Configuration option
                 if is_selected {
-                    execute!(io::stderr(), SetForegroundColor(Color::Black))?;
-                }
-                execute!(io::stderr(), Print("⚙️  Configure"))?;
-                if is_selected {
-                    execute!(io::stderr(), ResetColor)?;
+                    execute!(
+                        io::stderr(),
+                        SetForegroundColor(Color::Yellow),
+                        Print("⚙️  Configure"),
+                        ResetColor
+                    )?;
+                } else {
+                    execute!(io::stderr(), Print("⚙️  Configure"))?;
                 }
             }
 
@@ -755,7 +767,7 @@ impl VibeSelector {
     fn render_template_selection(&mut self, templates: &[ProjectTemplate]) -> Result<()> {
         execute!(io::stderr(), Clear(ClearType::All), MoveTo(0, 0))?;
 
-        let separator = "─".repeat(self.term_width as usize - 1);
+        let separator = "─".repeat(self.term_width.saturating_sub(1).max(10) as usize);
 
         // Header
         execute!(
@@ -798,9 +810,9 @@ impl VibeSelector {
     fn render_configuration_interface(&mut self) -> Result<()> {
         execute!(io::stderr(), Clear(ClearType::All), MoveTo(0, 0))?;
 
-        let separator = "─".repeat(self.term_width as usize - 1);
+        let separator = "─".repeat(self.term_width.saturating_sub(1).max(10) as usize);
 
-        // Header
+        // Header - match main UI style
         execute!(
             io::stderr(),
             SetForegroundColor(Color::Cyan),
@@ -829,13 +841,31 @@ impl VibeSelector {
 
         for (idx, (label, value)) in options.iter().enumerate() {
             let is_selected = idx == self.cursor_pos;
+            
+            // Match main UI selection style
             if is_selected {
-                execute!(io::stderr(), SetForegroundColor(Color::Yellow), Print("→ "), ResetColor)?;
+                execute!(
+                    io::stderr(),
+                    SetForegroundColor(Color::Yellow),
+                    Print("▶ "),
+                    ResetColor
+                )?;
             } else {
                 execute!(io::stderr(), Print("  "))?;
             }
 
-            execute!(io::stderr(), Print(label))?;
+            // Apply selection highlighting consistently
+            if is_selected {
+                execute!(
+                    io::stderr(),
+                    SetForegroundColor(Color::Yellow),
+                    Print(label),
+                    ResetColor,
+                )?;
+            } else {
+                execute!(io::stderr(), Print(label))?;
+            }
+            
             if !value.is_empty() {
                 execute!(
                     io::stderr(),
@@ -865,9 +895,9 @@ impl VibeSelector {
     fn render_inline_edit(&self, label: &str, value: &str) -> Result<()> {
         execute!(io::stderr(), Clear(ClearType::All), MoveTo(0, 0))?;
 
-        let separator = "─".repeat(self.term_width as usize - 1);
+        let separator = "─".repeat(self.term_width.saturating_sub(1).max(10) as usize);
 
-        // Header
+        // Header - match main UI style
         execute!(
             io::stderr(),
             SetForegroundColor(Color::Cyan),
@@ -880,19 +910,20 @@ impl VibeSelector {
             Print("\r\n"),
         )?;
 
-        // Edit field
+        // Edit field with consistent selection highlighting
         execute!(
             io::stderr(),
+            SetForegroundColor(Color::Yellow),
+            Print("▶ "),
             Print(label),
             Print(": "),
-            SetForegroundColor(Color::Yellow),
             Print(value),
             Print("█"), // cursor
             ResetColor,
             Print("\r\n"),
         )?;
 
-        // Instructions
+        // Instructions - match main UI style
         execute!(
             io::stderr(),
             SetForegroundColor(Color::DarkGrey),
@@ -909,7 +940,7 @@ impl VibeSelector {
     fn render_delete_confirmation(&self, project: &Project) -> Result<()> {
         execute!(io::stderr(), Clear(ClearType::All), MoveTo(0, 0))?;
 
-        let separator = "─".repeat(self.term_width as usize - 1);
+        let separator = "─".repeat(self.term_width.saturating_sub(1).max(10) as usize);
 
         // Header
         execute!(
@@ -975,35 +1006,41 @@ impl VibeSelector {
 
         execute!(io::stderr(), Print(format!("{} ", icon)))?;
 
+        // Project name with better color handling
         if is_selected {
-            execute!(io::stderr(), SetForegroundColor(Color::Black))?;
+            execute!(
+                io::stderr(),
+                SetForegroundColor(Color::Yellow),
+                Print(&project.name),
+                ResetColor,
+            )?;
+        } else {
+            execute!(io::stderr(), Print(&project.name))?;
         }
-
-        execute!(io::stderr(), Print(&project.name))?;
 
         // Format metadata
         let time_text = self.format_relative_time(&project.last_accessed);
         let score_text = format!("{:.1}", project.score);
         let meta_text = format!("{}, {}", time_text, score_text);
 
-        // Calculate padding
+        // Calculate padding - handle small terminals gracefully
         let text_width = project.name.len();
         let meta_width = meta_text.len() + 1;
-        let padding_needed = (self.term_width as usize).saturating_sub(5 + text_width + meta_width).max(1);
-        let padding = " ".repeat(padding_needed);
-
-        execute!(
-            io::stderr(),
-            Print(&padding),
-            Print(" "),
-            SetForegroundColor(Color::DarkGrey),
-            Print(&meta_text),
-            ResetColor,
-        )?;
-
-        if is_selected {
-            execute!(io::stderr(), ResetColor)?;
+        let min_width = 5 + text_width + meta_width;
+        
+        if (self.term_width as usize) >= min_width {
+            let padding_needed = (self.term_width as usize).saturating_sub(min_width).max(1);
+            let padding = " ".repeat(padding_needed);
+            execute!(
+                io::stderr(),
+                Print(&padding),
+                Print(" "),
+                SetForegroundColor(Color::DarkGrey),
+                Print(&meta_text),
+                ResetColor,
+            )?;
         }
+
 
         Ok(())
     }
