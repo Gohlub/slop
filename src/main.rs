@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use clap::{Parser, Subcommand};
+use clipboard::{ClipboardContext, ClipboardProvider};
 use crossterm::{
     cursor::{Hide, MoveTo, Show},
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
@@ -161,7 +162,6 @@ enum SelectionAction {
     OpenExisting,
     CreateNew,
     CloneRepo,
-    Cancel,
 }
 
 impl VibeSelector {
@@ -464,6 +464,13 @@ impl VibeSelector {
                                     self.mode = SelectorMode::ConfirmDelete;
                                 }
                             }
+                            KeyEvent { code: KeyCode::Char('v'), modifiers: KeyModifiers::CONTROL, .. } => {
+                                // Handle paste (Cmd+V on macOS, Ctrl+V on others)
+                                if let Ok(clipboard_content) = get_clipboard_content() {
+                                    self.input_buffer.push_str(&clipboard_content);
+                                    self.cursor_pos = 0;
+                                }
+                            }
                             KeyEvent { code: KeyCode::Char(ch), .. } => {
                                 if ch.is_alphanumeric() || ch == '-' || ch == '_' || ch == '.' || ch == ' ' || ch == '/' || ch == ':' {
                                     self.input_buffer.push(ch);
@@ -505,6 +512,12 @@ impl VibeSelector {
                             KeyEvent { code: KeyCode::Backspace, .. } => {
                                 if !self.input_buffer.is_empty() {
                                     self.input_buffer.pop();
+                                }
+                            }
+                            KeyEvent { code: KeyCode::Char('v'), modifiers: KeyModifiers::CONTROL, .. } => {
+                                // Handle paste (Cmd+V on macOS, Ctrl+V on others)
+                                if let Ok(clipboard_content) = get_clipboard_content() {
+                                    self.input_buffer.push_str(&clipboard_content);
                                 }
                             }
                             KeyEvent { code: KeyCode::Char(ch), .. } => {
@@ -770,7 +783,7 @@ impl VibeSelector {
             SetForegroundColor(Color::DarkGrey),
             Print(&separator),
             Print("\r\n"),
-            Print("Type: Project name  ↑↓: Navigate  Enter: Select  D: Delete  ESC: Clear"),
+            Print("Type: Project name  ↑↓: Navigate  Enter: Select  D: Delete  Cmd+V: Paste  ESC: Clear"),
             ResetColor,
         )?;
 
@@ -1465,9 +1478,13 @@ fn open_in_editor(path: &PathBuf, config: &VibeConfig) -> Result<()> {
     }
     
     for editor in &editors_to_try {
-        let child = Command::new(editor)
-            .arg(".")
-            .spawn();
+        let child = if editor == &"claude" {
+            // Claude doesn't need a path argument - it opens in current directory
+            Command::new(editor).spawn()
+        } else {
+            // Other editors need the path
+            Command::new(editor).arg(".").spawn()
+        };
             
         if let Ok(mut process) = child {
             println!("🚀 Opening in {}...", editor);
@@ -1533,6 +1550,14 @@ fn save_notes_to_project(project_path: &PathBuf, notes: &str) -> Result<()> {
     }
     
     Ok(())
+}
+
+fn get_clipboard_content() -> Result<String> {
+    let mut ctx: ClipboardContext = ClipboardProvider::new()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize clipboard: {}", e))?;
+    let content = ctx.get_contents()
+        .map_err(|e| anyhow::anyhow!("Failed to get clipboard content: {}", e))?;
+    Ok(content.trim().to_string())
 }
 
 fn update_access_time(path: &PathBuf) -> Result<()> {
@@ -1660,9 +1685,6 @@ async fn main() -> Result<()> {
                             update_access_time(&result.path)?;
                             open_in_editor(&result.path, &config)?;
                         }
-                    }
-                    SelectionAction::Cancel => {
-                        println!("Cancelled.");
                     }
                 }
             }

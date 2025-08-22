@@ -19,6 +19,8 @@ source ~/.zshrc  # or source ~/.bashrc for bash
 
 ## Usage
 
+![slop demo](https://i.imgur.com/4mnxtRf.gif)
+
 ```bash
 slop                          # Interactive project browser
 slop my-new-idea              # Create or find project
